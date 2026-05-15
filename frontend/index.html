@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ORGuard — Surgical Safety Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /*
+      COLORBLIND-SAFE PALETTE (Okabe-Ito based, modernised):
+      Blue    #3b82f6 / light #60a5fa  — primary / info
+      Teal    #14b8a6                  — success (always + check icon)
+      Amber   #f59e0b                  — warning (always + triangle icon)
+      Red     #ef4444                  — danger  (always + X icon)
+      Purple  #8b5cf6                  — AI / model
+      All status: icon + text label, never colour alone. Min 4.5:1 contrast.
+    */
+    :root {
+      --bg:        #0f1722;
+      --bg2:       #131d2b;
+      --bg3:       #182434;
+      --surface:   #1d2b3d;
+      --surface2:  #23344a;
+      --border:    #31465f;
+      --border2:   #3d5877;
+      --text:      #edf3fb;
+      --text2:     #b7c6d8;
+      --text3:     #7f97b2;
+      --blue:      #3b82f6;
+      --blue-l:    #60a5fa;
+      --blue-bg:   rgba(59,130,246,0.14);
+      --teal:      #14b8a6;
+      --teal-bg:   rgba(20,184,166,0.14);
+      --amber:     #f59e0b;
+      --amber-bg:  rgba(245,158,11,0.14);
+      --verm:      #ef4444;
+      --verm-bg:   rgba(239,68,68,0.14);
+      --purple:    #8b5cf6;
+      --purple-bg: rgba(139,92,246,0.14);
+      --font:      'Outfit', sans-serif;
+      --mono:      'IBM Plex Mono', monospace;
+      --r:         8px;
+      --rl:        12px;
+      --sw:        224px;
+    }
+
+    /* ── LIGHT MODE ── */
+    [data-theme="light"] {
+      --bg:        #f0f4f9;
+      --bg2:       #e8eef6;
+      --bg3:       #dde5f0;
+      --surface:   #ffffff;
+      --surface2:  #f4f7fc;
+      --border:    #c5d0e0;
+      --border2:   #b0bfd4;
+      --text:      #0f1e30;
+      --text2:     #2e4460;
+      --text3:     #5a7294;
+      --blue:      #1d6fe8;
+      --blue-l:    #1a5fd4;
+      --blue-bg:   rgba(29,111,232,0.10);
+      --teal:      #0d9e8c;
+      --teal-bg:   rgba(13,158,140,0.10);
+      --amber:     #c97f00;
+      --amber-bg:  rgba(201,127,0,0.10);
+      --verm:      #d93025;
+      --verm-bg:   rgba(217,48,37,0.10);
+      --purple:    #6d3fd6;
+      --purple-bg: rgba(109,63,214,0.10);
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sw);
+      min-height: 100vh;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sb-logo {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+    .sb-icon {
+      width: 36px; height: 36px;
+      background: var(--blue);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 19px; flex-shrink: 0;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.22);
+    }
+    .sb-name { font-size: 1.02rem; font-weight: 700; color: var(--text); }
+    .sb-sub  { font-size: 0.62rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+    nav { padding: 10px 8px; flex: 1; }
+    .nav-lbl {
+      font-size: 0.6rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text3);
+      padding: 10px 8px 5px;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: var(--r);
+      color: var(--text2); font-size: 0.87rem; font-weight: 500;
+      cursor: pointer; border: none; background: none;
+      width: 100%; text-align: left; margin-bottom: 2px;
+      font-family: var(--font);
+      transition: background .15s, color .15s;
+    }
+    .nav-btn i { font-size: 18px; flex-shrink: 0; }
+    .nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .nav-btn:focus { outline: 2px solid var(--blue-l); outline-offset: 1px; }
+    .nav-btn.on { background: var(--blue-bg); color: var(--blue-l); }
+    .sb-foot {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.69rem; color: var(--text3); line-height: 1.65;
+    }
+    .sb-foot strong { color: var(--text2); display: block; margin-bottom: 2px; }
+
+    /* ── MAIN ── */
+    .main { flex: 1; overflow-y: auto; height: 100vh; display: flex; flex-direction: column; }
+    .topbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; position: sticky; top: 0; z-index: 50;
+    }
+    .tb-title { font-size: 0.95rem; font-weight: 600; }
+    .tb-sub   { font-size: 0.74rem; color: var(--text3); }
+    .badge-live {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; font-weight: 600; color: var(--teal);
+      font-family: var(--mono);
+    }
+    .dot-live {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--teal);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .pc { padding: 26px 28px; }
+    .page { display: none; }
+    .page.on { display: block; }
+
+    /* ── RESEARCH BANNER ── */
+    .r-banner {
+      background: var(--blue-bg);
+      border: 1px solid rgba(59,130,246,0.4);
+      border-radius: var(--rl);
+      padding: 14px 18px;
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 26px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .r-banner i { color: var(--blue-l); font-size: 20px; margin-top: 2px; flex-shrink: 0; }
+    .r-banner-text { font-size: 0.82rem; color: var(--text2); line-height: 1.7; }
+    .r-banner-text strong { color: var(--blue-l); }
+    .r-banner-text a { color: var(--blue-l); opacity: .8; font-size: 0.76rem; }
+    .r-banner-text a:hover { opacity: 1; }
+
+    /* ── STATS ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 14px; margin-bottom: 26px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 17px 18px;
+      display: flex; align-items: flex-start; gap: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .stat-card:hover { border-color: var(--border2); box-shadow: 0 4px 14px rgba(0,0,0,0.26); }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .si-blue   { background: var(--blue-bg);   color: var(--blue-l); }
+    .si-teal   { background: var(--teal-bg);   color: var(--teal); }
+    .si-amber  { background: var(--amber-bg);  color: var(--amber); }
+    .si-verm   { background: var(--verm-bg);   color: var(--verm); }
+    .stat-val  { font-size: 1.7rem; font-weight: 700; line-height: 1; font-family: var(--mono); }
+    .stat-lbl  { font-size: 0.69rem; color: var(--text3); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* ── CHARTS ── */
+    .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .chart-title { font-size: 0.87rem; font-weight: 600; margin-bottom: 3px; }
+    .chart-sub { font-size: 0.71rem; color: var(--text3); margin-bottom: 14px; }
+
+    /* ── PHASE BARS ── */
+    .phase-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 18px 20px;
+      margin-bottom: 26px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .ph-row { display: flex; align-items: center; gap: 14px; margin-bottom: 11px; }
+    .ph-row:last-child { margin-bottom: 0; }
+    .ph-name { font-size: 0.82rem; font-weight: 600; color: var(--text2); width: 88px; flex-shrink: 0; }
+    .ph-track {
+      flex: 1; height: 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px; overflow: hidden;
+    }
+    .ph-fill { height: 100%; border-radius: 20px; transition: width .9s cubic-bezier(.4,0,.2,1); }
+    .ph-fill.si { background: var(--blue); }
+    .ph-fill.to { background: var(--amber); }
+    .ph-fill.so { background: var(--teal); }
+    .ph-pct { font-family: var(--mono); font-size: 0.76rem; color: var(--text3); width: 36px; text-align: right; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .filter-bar label { font-size: 0.75rem; color: var(--text3); flex-shrink: 0; }
+    .f-input, .f-select {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 7px 11px;
+      color: var(--text); font-size: 0.82rem; font-family: var(--font);
+      outline: none;
+    }
+    .f-input { flex: 1; min-width: 160px; }
+    .f-select option { background: var(--bg2); }
+    .f-input:focus, .f-select:focus {
+      border-color: var(--blue-l);
+      box-shadow: 0 0 0 2px rgba(96,165,250,0.12);
+    }
+    .btn-reset {
+      background: none; border: 1px solid var(--border);
+      color: var(--text3); border-radius: 6px;
+      padding: 7px 13px; font-size: 0.79rem;
+      cursor: pointer; font-family: var(--font);
+      transition: color .15s, border-color .15s;
+    }
+    .btn-reset:hover { color: var(--text); border-color: var(--text3); }
+
+    /* ── CHECKLIST CARDS ── */
+    .cl-grid { display: grid; gap: 11px; }
+    .cl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 16px 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+    }
+    .cl-card:hover { border-color: var(--blue-l); box-shadow: 0 4px 14px rgba(0,0,0,0.26); }
+    .cl-card:focus { outline: 2px solid var(--blue-l); outline-offset: 2px; }
+    .cl-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .cl-proc { font-size: 0.94rem; font-weight: 600; }
+    .cl-meta {
+      font-size: 0.75rem; color: var(--text3); margin-top: 4px;
+      display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    }
+    .cl-meta i { font-size: 12px; }
+    .score-pill {
+      font-family: var(--mono); font-size: 0.76rem; font-weight: 600;
+      padding: 4px 11px; border-radius: 20px; border: 1.5px solid;
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+    }
+    .sp-h { background: var(--teal-bg);  color: var(--teal);  border-color: var(--teal); }
+    .sp-m { background: var(--amber-bg); color: var(--amber); border-color: var(--amber); }
+    .sp-l { background: var(--verm-bg);  color: var(--verm);  border-color: var(--verm); }
+    .ph-chips { display: flex; gap: 7px; margin-top: 12px; }
+    .ph-chip {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 600;
+      padding: 4px 9px; border-radius: 6px; border: 1px solid;
+    }
+    .ph-chip.done { background: var(--teal-bg); color: var(--teal); border-color: var(--teal); }
+    .ph-chip.pend { background: var(--bg3); color: var(--text3); border-color: var(--border); }
+    .ph-chip i { font-size: 12px; }
+    .flag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .fc { font-size: 0.7rem; padding: 3px 9px; border-radius: 20px; border: 1px solid; display: flex; align-items: center; gap: 4px; }
+    .fc i { font-size: 11px; }
+    .fc-h { background: var(--verm-bg);   color: var(--verm);   border-color: var(--verm); }
+    .fc-c { background: var(--amber-bg);  color: var(--amber);  border-color: var(--amber); }
+    .fc-m { background: var(--purple-bg); color: var(--purple); border-color: var(--purple); }
+
+    /* ── PAGINATION ── */
+    .pager { display: flex; align-items: center; gap: 7px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+    .pg-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text2); border-radius: 6px;
+      padding: 6px 13px; font-size: 0.8rem;
+      cursor: pointer; font-family: var(--font);
+      transition: border-color .15s, color .15s;
+    }
+    .pg-btn:hover { border-color: var(--blue-l); color: var(--blue-l); }
+    .pg-btn.cur { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .pg-btn:disabled { opacity: .35; cursor: default; }
+    .pg-info { font-size: 0.75rem; color: var(--text3); font-family: var(--mono); }
+
+    /* ── CREATE FORM ── */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      padding: 20px 22px; margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .form-card h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .fg { display: flex; flex-direction: column; gap: 4px; }
+    .fg-full { grid-column: span 2; }
+    .f-lbl { font-size: 0.72rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px; }
+    .f-in {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 11px;
+      color: var(--text); font-size: 0.87rem;
+      font-family: var(--font); outline: none; width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .f-in:focus { border-color: var(--blue-l); box-shadow: 0 0 0 2px rgba(96,165,250,0.12); }
+    .form-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 12px; }
+    .flags-sec { border-top: 1px solid var(--border); padding-top: 13px; margin-top: 2px; }
+    .flags-lbl { font-size: 0.7rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 9px; }
+    .flags-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .flag-opt {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.83rem; color: var(--text2);
+      cursor: pointer; padding: 7px 11px;
+      border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg3); user-select: none;
+      transition: border-color .12s, background .12s;
+    }
+    .flag-opt:hover { border-color: var(--blue-l); background: var(--blue-bg); }
+    .flag-opt input[type=checkbox] { accent-color: var(--blue-l); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--blue); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 6px; cursor: pointer;
+      font-size: 0.87rem; font-weight: 600; margin-top: 14px; width: 100%;
+      font-family: var(--font);
+      transition: background .15s, transform .15s;
+    }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-primary:focus { outline: 2px solid var(--blue-l); outline-offset: 2px; }
+
+    /* ── MODAL ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
+      z-index: 200; align-items: center; justify-content: center; padding: 16px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--rl);
+      width: 100%; max-width: 660px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    .modal-hd {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start;
+      position: sticky; top: 0; background: var(--bg2); z-index: 5;
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; }
+    .modal-meta  { font-size: 0.76rem; color: var(--text3); margin-top: 3px; }
+    .modal-close {
+      background: none; border: 1px solid var(--border);
+      color: var(--text3); border-radius: 6px;
+      width: 30px; height: 30px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      transition: border-color .15s, color .15s;
+    }
+    .modal-close:hover { border-color: var(--text3); color: var(--text); }
+    .modal-close:focus { outline: 2px solid var(--blue-l); }
+    .modal-bd { padding: 18px 22px; }
+    .ms-lbl {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 9px; margin-top: 18px;
+    }
+    .ms-lbl:first-child { margin-top: 0; }
+    .m-phases { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+    .m-ph-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 13px 8px; border-radius: var(--r); border: 1.5px solid;
+      cursor: pointer; font-family: var(--font);
+      font-size: 0.79rem; font-weight: 600;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .m-ph-btn i { font-size: 20px; }
+    .m-ph-btn.done { background: var(--teal-bg); border-color: var(--teal); color: var(--teal); }
+    .m-ph-btn.pend { background: var(--bg3); border-color: var(--border); color: var(--text3); }
+    .m-ph-btn.pend:hover { border-color: var(--blue-l); color: var(--blue-l); background: var(--blue-bg); }
+    .m-ph-ts { font-size: 0.65rem; font-family: var(--mono); opacity: .7; }
+    .m-flags { display: flex; flex-direction: column; gap: 7px; }
+    .m-flag {
+      display: flex; align-items: flex-start; gap: 9px;
+      padding: 9px 12px; border-radius: var(--r); border-left: 3px solid;
+      font-size: 0.8rem; line-height: 1.5;
+    }
+    .m-flag i { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .m-flag .ft { color: var(--text2); }
+    .m-flag.fh { background: var(--verm-bg);   border-color: var(--verm);   color: var(--verm); }
+    .m-flag.fc { background: var(--amber-bg);  border-color: var(--amber);  color: var(--amber); }
+    .m-flag.fm { background: var(--purple-bg); border-color: var(--purple); color: var(--purple); }
+    .inst-tbl { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
+    .inst-tbl th {
+      text-align: left; padding: 7px 9px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text3); font-weight: 600;
+    }
+    .inst-tbl td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text2); }
+    .inst-tbl tr:last-child td { border-bottom: none; }
+    .i-status { display: flex; align-items: center; gap: 5px; font-size: 0.73rem; font-weight: 600; }
+    .i-status.matched    { color: var(--teal); }
+    .i-status.missing    { color: var(--verm); }
+    .i-status.unverified { color: var(--amber); }
+    .inst-add { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 7px; align-items: end; margin-top: 11px; }
+    .inst-add .f-in { font-size: 0.8rem; padding: 6px 9px; }
+    .btn-sm {
+      background: var(--blue); color: #fff; border: none;
+      padding: 6px 13px; border-radius: 6px; cursor: pointer;
+      font-size: 0.79rem; font-weight: 600; font-family: var(--font);
+      white-space: nowrap;
+      transition: background .15s, transform .15s;
+    }
+    .btn-sm:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-del {
+      background: none; border: 1px solid var(--border);
+      color: var(--text3); border-radius: 6px;
+      padding: 5px 11px; cursor: pointer;
+      font-size: 0.79rem; font-family: var(--font);
+      transition: border-color .15s, color .15s;
+    }
+    .btn-del:hover { border-color: var(--verm); color: var(--verm); }
+
+    /* ── ANALYTICS ── */
+    .anal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .anal-grid .span2 { grid-column: span 2; }
+    .proc-tbl { width: 100%; border-collapse: collapse; font-size: 0.81rem; }
+    .proc-tbl th {
+      text-align: left; padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text3); font-weight: 600;
+    }
+    .proc-tbl td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text2); }
+    .proc-tbl tr:last-child td { border-bottom: none; }
+    .mini-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+    .mini-fill { height: 100%; border-radius: 4px; background: var(--blue); }
+
+    /* ── AI PAGE ── */
+    .ai-wrap { max-width: 780px; }
+    .ai-banner {
+      background: var(--purple-bg);
+      border: 1px solid rgba(139,92,246,0.4);
+      border-radius: var(--rl);
+      padding: 14px 18px;
+      display: flex; align-items: flex-start; gap: 13px;
+      margin-bottom: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .ai-banner i { color: var(--purple); font-size: 20px; margin-top: 2px; flex-shrink: 0; }
+    .ai-banner-title { font-size: 0.93rem; font-weight: 700; color: var(--purple); margin-bottom: 3px; }
+    .ai-banner-sub { font-size: 0.79rem; color: var(--text2); line-height: 1.65; }
+    .ai-banner-sub code {
+      font-family: var(--mono); font-size: 0.73rem;
+      background: var(--bg3); padding: 1px 5px; border-radius: 4px; color: var(--purple);
+    }
+    .upload-zone {
+      border: 2px dashed var(--border2); border-radius: var(--rl);
+      padding: 44px 22px; text-align: center; cursor: pointer;
+      background: var(--surface); margin-bottom: 18px;
+      transition: border-color .15s, background .15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--purple); background: rgba(139,92,246,0.08); }
+    .upload-zone i { font-size: 38px; color: var(--text3); display: block; margin-bottom: 10px; }
+    .upload-zone p { font-size: 0.86rem; color: var(--text2); }
+    .upload-zone small { font-size: 0.73rem; color: var(--text3); display: block; margin-top: 4px; }
+    .upload-zone input { display: none; }
+    .vid-wrap {
+      display: none; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--rl);
+      overflow: hidden; margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .vid-wrap.show { display: block; }
+    .vid-wrap video { width: 100%; display: block; max-height: 400px; background: #000; }
+    .vid-info { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text3); font-family: var(--mono); }
+    .ai-ctrls { display: flex; gap: 11px; align-items: center; margin-bottom: 18px; }
+    .btn-ai {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--purple); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 6px; cursor: pointer;
+      font-size: 0.87rem; font-weight: 600; font-family: var(--font);
+      transition: background .15s, transform .15s;
+    }
+    .btn-ai:hover { background: #7c3aed; transform: translateY(-1px); }
+    .btn-ai:disabled { opacity: .45; cursor: default; transform: none; }
+    .ai-note { font-size: 0.76rem; color: var(--text3); display: flex; align-items: center; gap: 6px; }
+    .ai-out {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--rl); padding: 18px; min-height: 150px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .ao-title { font-size: 0.79rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 13px; }
+    .ai-ph { text-align: center; padding: 28px 0; color: var(--text3); font-size: 0.84rem; }
+    .ai-ph i { font-size: 30px; display: block; margin-bottom: 8px; color: var(--purple); opacity: .45; }
+    .det-list { display: grid; gap: 9px; }
+    .det-item {
+      display: flex; align-items: center; gap: 11px;
+      padding: 9px 13px; border-radius: var(--r);
+      background: var(--bg3); border: 1px solid var(--border);
+    }
+    .det-ic {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: var(--purple-bg); display: flex; align-items: center; justify-content: center;
+      color: var(--purple); font-size: 15px; flex-shrink: 0;
+    }
+    .det-lbl { font-size: 0.84rem; font-weight: 600; flex: 1; }
+    .det-cnt { font-size: 0.75rem; color: var(--text3); font-family: var(--mono); }
+    .det-conf { font-family: var(--mono); font-size: 0.76rem; color: var(--purple); }
+    .ai-log {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 11px 13px;
+      font-family: var(--mono); font-size: 0.73rem; color: var(--text3);
+      max-height: 110px; overflow-y: auto; margin-top: 13px; line-height: 1.8;
+    }
+    .ll-ok   { color: var(--teal); }
+    .ll-warn { color: var(--amber); }
+    .ll-err  { color: var(--verm); }
+
+    /* ── MISC ── */
+    .empty { text-align: center; padding: 44px; color: var(--text3); font-size: 0.86rem; }
+    .empty i { font-size: 38px; display: block; margin-bottom: 10px; opacity: .28; }
+    .sl {
+      font-size: 0.66rem; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 10px; margin-top: 24px;
+    }
+    .sl:first-child { margin-top: 0; }
+    .toast {
+      position: fixed; bottom: 22px; right: 22px; z-index: 999;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 11px 16px; font-size: 0.84rem; color: var(--text);
+      display: flex; align-items: center; gap: 9px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.45);
+      transform: translateY(80px); opacity: 0;
+      transition: transform .22s, opacity .22s;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast i { font-size: 17px; }
+    .toast.tok  i { color: var(--teal); }
+    .toast.terr i { color: var(--verm); }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    @media(max-width:900px){
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .charts-row { grid-template-columns: 1fr; }
+      .anal-grid  { grid-template-columns: 1fr; }
+      .anal-grid .span2 { grid-column: span 1; }
+    }
+    @media(max-width:640px){
+      :root { --sw: 0px; }
+      .sidebar { display: none; }
+      .form-2col { grid-template-columns: 1fr; }
+      .fg-full { grid-column: span 1; }
+      .inst-add { grid-template-columns: 1fr 1fr; }
+      .m-phases { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="sb-logo">
+    <div class="sb-icon" aria-hidden="true"><i class="ti ti-shield-check"></i></div>
+    <div>
+      <div class="sb-name">ORGuard</div>
+      <div class="sb-sub">Surgical Safety</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-lbl">Clinical</div>
+    <button class="nav-btn on" onclick="nav('dashboard')" aria-current="page">
+      <i class="ti ti-layout-dashboard" aria-hidden="true"></i> Dashboard
+    </button>
+    <button class="nav-btn" onclick="nav('checklists')">
+      <i class="ti ti-clipboard-list" aria-hidden="true"></i> Checklists
+    </button>
+    <button class="nav-btn" onclick="nav('analytics')">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i> Analytics
+    </button>
+    <div class="nav-lbl">AI</div>
+    <button class="nav-btn" onclick="nav('ai')">
+      <i class="ti ti-cpu" aria-hidden="true"></i> Instrument Detection
+    </button>
+  </nav>
+  <div class="sb-foot">
+    <strong>Research basis</strong>
+    PROSPERO 2024 · 51% global WHO checklist completeness (51 studies, 28 countries)
+    <br>Haynes et al., NEJM 2009
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main" id="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-sub"   id="tb-sub">WHO Surgical Safety Checklist Compliance</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button id="theme-toggle" onclick="toggleTheme()"
+              aria-label="Toggle light/dark mode"
+              style="background:none;border:1px solid var(--border);color:var(--text3);
+                     border-radius:6px;width:32px;height:32px;cursor:pointer;
+                     display:flex;align-items:center;justify-content:center;font-size:16px;
+                     transition:border-color .15s,color .15s;">
+        <i class="ti ti-sun" id="theme-ic" aria-hidden="true"></i>
+      </button>
+      <div class="badge-live" aria-label="Live data connection">
+        <div class="dot-live" aria-hidden="true"></div>LIVE
+      </div>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="page on pc" id="pg-dashboard">
+    <div class="r-banner" role="note" aria-label="Research context">
+      <i class="ti ti-book" aria-hidden="true"></i>
+      <div class="r-banner-text">
+        <strong>Research context:</strong> A 2024 PROSPERO systematic review (51 studies, 28 countries) found global WHO surgical checklist completion at just <strong>51.4%</strong> — sign-out most frequently skipped. This platform digitises all three WHO phases with real-time compliance tracking and clinical risk flagging.
+        <br>
+        <a href="https://www.who.int/teams/integrated-health-services/patient-safety/research/safe-surgery" target="_blank" rel="noopener">WHO Safe Surgery →</a>
+        &nbsp;·&nbsp;
+        <a href="https://www.nejm.org/doi/full/10.1056/NEJMsa0810119" target="_blank" rel="noopener">Haynes et al. NEJM 2009 →</a>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon si-blue" aria-hidden="true"><i class="ti ti-clipboard-list"></i></div>
+        <div><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Total Surgeries</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-blue" aria-hidden="true"><i class="ti ti-percentage"></i></div>
+        <div><div class="stat-val" id="s-comp">—</div><div class="stat-lbl">Avg Compliance</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-teal" aria-hidden="true"><i class="ti ti-circle-check"></i></div>
+        <div><div class="stat-val" id="s-full">—</div><div class="stat-lbl">Fully Compliant</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-amber" aria-hidden="true"><i class="ti ti-alert-triangle"></i></div>
+        <div><div class="stat-val" id="s-flag">—</div><div class="stat-lbl">Flagged Cases</div></div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Compliance Trend — Last 30 Days</div>
+        <div class="chart-sub">Average checklist compliance score per day</div>
+        <canvas id="ct-trend" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Score Distribution</div>
+        <div class="chart-sub">Cases by compliance bucket</div>
+        <canvas id="ct-dist" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-title" style="margin-bottom:9px;font-size:.88rem;font-weight:600">Phase Completion Rates</div>
+    <div class="phase-block" aria-label="WHO phase completion rates">
+      <div class="ph-row">
+        <div class="ph-name">Sign In</div>
+        <div class="ph-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="pb-si">
+          <div class="ph-fill si" id="pf-si" style="width:0%"></div>
+        </div>
+        <div class="ph-pct" id="pp-si">—</div>
+      </div>
+      <div class="ph-row">
+        <div class="ph-name">Time Out</div>
+        <div class="ph-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="pb-to">
+          <div class="ph-fill to" id="pf-to" style="width:0%"></div>
+        </div>
+        <div class="ph-pct" id="pp-to">—</div>
+      </div>
+      <div class="ph-row">
+        <div class="ph-name">Sign Out</div>
+        <div class="ph-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="pb-so">
+          <div class="ph-fill so" id="pf-so" style="width:0%"></div>
+        </div>
+        <div class="ph-pct" id="pp-so">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHECKLISTS ── -->
+  <div class="page pc" id="pg-checklists">
+    <div class="form-card">
+      <h3><i class="ti ti-plus" aria-hidden="true"></i> New Surgical Checklist</h3>
+      <div class="form-2col">
+        <div class="fg">
+          <label class="f-lbl" for="fp-pid">Patient ID</label>
+          <input id="fp-pid" class="f-in" type="text" placeholder="e.g. PT-053" autocomplete="off" />
+        </div>
+        <div class="fg">
+          <label class="f-lbl" for="fp-surg">Surgeon</label>
+          <input id="fp-surg" class="f-in" type="text" placeholder="Dr. Name" autocomplete="off" />
+        </div>
+        <div class="fg fg-full">
+          <label class="f-lbl" for="fp-proc">Procedure</label>
+          <input id="fp-proc" class="f-in" type="text" placeholder="Procedure name" autocomplete="off" />
+        </div>
+      </div>
+      <div class="flags-sec">
+        <div class="flags-lbl">Patient Risk Flags</div>
+        <div class="flags-2col">
+          <label class="flag-opt"><input type="checkbox" id="fx-ac"> <i class="ti ti-pill" aria-hidden="true"></i> On anticoagulants</label>
+          <label class="flag-opt"><input type="checkbox" id="fx-al"> <i class="ti ti-alert-circle" aria-hidden="true"></i> Known allergies</label>
+          <label class="flag-opt"><input type="checkbox" id="fx-ro"> <i class="ti ti-robot" aria-hidden="true"></i> Robotic procedure</label>
+          <label class="flag-opt"><input type="checkbox" id="fx-an"> <i class="ti ti-heart-rate-monitor" aria-hidden="true"></i> High-risk anesthesia</label>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="createCL()" aria-label="Create new checklist">
+        <i class="ti ti-plus" aria-hidden="true"></i> Create Checklist
+      </button>
+    </div>
+
+    <div class="filter-bar" role="search" aria-label="Filter checklists">
+      <label for="ff-srch">Search</label>
+      <input id="ff-srch" class="f-input" type="search" placeholder="Patient ID, procedure, surgeon…" oninput="debLoad()" />
+      <label for="ff-surg">Surgeon</label>
+      <select id="ff-surg" class="f-select" onchange="loadCL(1)">
+        <option value="">All surgeons</option>
+      </select>
+      <label for="ff-risk">Risk</label>
+      <select id="ff-risk" class="f-select" onchange="loadCL(1)">
+        <option value="">All</option>
+        <option value="high">High risk only</option>
+        <option value="flagged">Any flag</option>
+        <option value="clean">No flags</option>
+      </select>
+      <button class="btn-reset" onclick="resetF()">Reset</button>
+    </div>
+
+    <div id="cl-grid" class="cl-grid" role="list" aria-label="Checklist records">
+      <div class="empty" aria-busy="true"><i class="ti ti-loader" aria-label="Loading"></i>Loading…</div>
+    </div>
+    <div class="pager" id="pager" role="navigation" aria-label="Pagination"></div>
+  </div>
+
+  <!-- ── ANALYTICS ── -->
+  <div class="page pc" id="pg-analytics">
+    <p style="font-size:.83rem;color:var(--text3);margin-bottom:22px">Compliance metrics across all procedures · Live MongoDB aggregation</p>
+    <div class="anal-grid">
+      <div class="chart-card span2">
+        <div class="chart-title">30-Day Compliance Trend</div>
+        <div class="chart-sub">Daily average compliance score and case volume</div>
+        <canvas id="ct-trend2" height="130"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Phase Drop-off</div>
+        <div class="chart-sub">% of cases completing each WHO phase
+          <span style="color:var(--amber);display:block;margin-top:2px">⚠ Sign-out most skipped (PROSPERO, 2024)</span>
+        </div>
+        <canvas id="ct-phases" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Score Distribution</div>
+        <div class="chart-sub">Cases by compliance bucket</div>
+        <canvas id="ct-dist2" height="200"></canvas>
+      </div>
+      <div class="chart-card span2">
+        <div class="chart-title">Compliance by Procedure</div>
+        <div class="chart-sub">Average compliance per procedure type (top 10)</div>
+        <div id="proc-tbl-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AI DETECTION ── -->
+  <div class="page pc" id="pg-ai">
+    <div class="ai-wrap">
+      <div class="ai-banner" role="note">
+        <i class="ti ti-cpu" aria-hidden="true"></i>
+        <div>
+          <div class="ai-banner-title">YOLOv8 Surgical Instrument Detection</div>
+          <div class="ai-banner-sub">
+            Upload a laparoscopic surgery video and run inference with your locally trained YOLOv8 model on
+            <strong>CholecSeg8k</strong> (8,080 annotated frames, 13 instrument/tissue classes).
+            Inference endpoint: <code>http://localhost:5001/detect</code> — start your Flask server first.
+          </div>
+        </div>
+      </div>
+
+      <div class="sl">Upload Video</div>
+      <div class="upload-zone" id="uz" role="button" tabindex="0"
+           aria-label="Upload video — click or drag and drop"
+           onclick="document.getElementById('vi').click()"
+           onkeydown="if(event.key==='Enter'||event.key===' ')document.getElementById('vi').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="doDrop(event)">
+        <i class="ti ti-video" aria-hidden="true"></i>
+        <p>Click to upload or drag &amp; drop a video</p>
+        <small>MP4 · MKV · AVI · MOV — recommended max 500 MB</small>
+        <input type="file" id="vi" accept="video/*" onchange="loadVid(this.files[0])">
+      </div>
+
+      <div class="vid-wrap" id="vw">
+        <video id="vp" controls aria-label="Uploaded video preview"></video>
+        <div class="vid-info" id="vinfo"></div>
+      </div>
+
+      <div class="ai-ctrls">
+        <button class="btn-ai" id="btn-det" onclick="runDet()" disabled aria-label="Run instrument detection">
+          <i class="ti ti-cpu" aria-hidden="true"></i> Run Detection
+        </button>
+        <div class="ai-note">
+          <i class="ti ti-info-circle" aria-hidden="true"></i>
+          Requires Flask at <code style="font-family:var(--mono);font-size:.73rem;background:var(--bg3);padding:1px 5px;border-radius:4px">localhost:5001</code>
+        </div>
+      </div>
+
+      <div class="sl">Detection Output</div>
+      <div class="ai-out" id="ai-out" aria-live="polite" aria-label="Detection results">
+        <div class="ao-title">Results</div>
+        <div class="ai-ph" id="ai-ph">
+          <i class="ti ti-scan" aria-hidden="true"></i>
+          Upload a video and click Run Detection to see instrument labels, confidence scores, and frame analysis.
+        </div>
+        <div class="det-list" id="det-list" style="display:none"></div>
+      </div>
+      <div class="ai-log" id="ai-log" aria-live="polite" aria-label="Detection log">
+        <div class="log-line">ORGuard AI · Awaiting video input…</div>
+      </div>
+
+      <div class="sl" style="margin-top:26px">Dataset Reference — CholecSeg8k</div>
+      <div class="chart-card" style="margin-top:0">
+        <div style="font-size:.82rem;color:var(--text2);line-height:1.85">
+          <strong style="color:var(--text)">CholecSeg8k</strong> — Hong et al., 2020. 8,080 frames from 17 laparoscopic cholecystectomy videos with pixel-level segmentation masks for 13 classes: grasper, hook, clipper, irrigator, specimen-bag, and hepatocystic triangle tissues.
+          <br><br>
+          <strong style="color:var(--text)">Expected video format:</strong> Laparoscopic camera feed, 854×480 px, 25 fps, MP4.
+          <br><br>
+          <strong style="color:var(--text)">Flask endpoint spec:</strong>
+          <code style="font-family:var(--mono);font-size:.72rem;display:block;background:var(--bg3);padding:10px 12px;border-radius:6px;margin-top:6px;color:var(--purple)">POST http://localhost:5001/detect
+Content-Type: multipart/form-data · Body: { video: &lt;file&gt; }
+
+Response: {
+  detections: [{ label: string, confidence: float, frame: int }],
+  summary: { [label]: count }
+}</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="Checklist detail"
+     onclick="if(event.target===this)closeMod()">
+  <div class="modal" id="modal">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title" id="mod-title">—</div>
+        <div class="modal-meta"  id="mod-meta">—</div>
+      </div>
+      <button class="modal-close" onclick="closeMod()" aria-label="Close detail view">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="modal-bd" id="mod-body">
+      <div class="empty" aria-busy="true"><i class="ti ti-loader" aria-label="Loading"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="alert" aria-live="assertive">
+  <i class="ti ti-circle-check" id="t-ic" aria-hidden="true"></i>
+  <span id="t-msg"></span>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+
+function getComputedVar(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function setChartDefaults() {
+  Chart.defaults.color       = getComputedVar('--text3');
+  Chart.defaults.borderColor = getComputedVar('--border');
+}
+setChartDefaults();
+Chart.defaults.font.family  = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size    = 11;
+
+const C = {
+  blue:'#3b82f6', sky:'#60a5fa',
+  teal:'#14b8a6', amber:'#f59e0b',
+  verm:'#ef4444', purple:'#8b5cf6'
+};
+
+let charts = {}, curPage = 1, totPages = 1, debT;
+
+const PAGES = {
+  dashboard:  { title:'Dashboard',           sub:'WHO Surgical Safety Checklist Compliance' },
+  checklists: { title:'Checklists',           sub:'Create, view, and manage surgical cases' },
+  analytics:  { title:'Analytics',            sub:'Compliance metrics across all procedures' },
+  ai:         { title:'Instrument Detection', sub:'YOLOv8 · CholecSeg8k · Laparoscopic AI' },
+};
+
+/* ── NAVIGATION ── */
+function nav(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(x => { x.classList.remove('on'); x.removeAttribute('aria-current'); });
+  document.getElementById('pg-'+p).classList.add('on');
+  const b = document.querySelector(`.nav-btn[onclick="nav('${p}')"]`);
+  if (b) { b.classList.add('on'); b.setAttribute('aria-current','page'); }
+  document.getElementById('tb-title').textContent = PAGES[p]?.title || p;
+  document.getElementById('tb-sub').textContent   = PAGES[p]?.sub   || '';
+  document.getElementById('main').scrollTop = 0;
+  if (p === 'dashboard')  initDash();
+  if (p === 'checklists') { loadSurgs(); loadCL(1); }
+  if (p === 'analytics')  initAnal();
+}
+
+/* ── TOAST ── */
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  document.getElementById('t-ic').className = type === 'ok' ? 'ti ti-circle-check' : 'ti ti-alert-triangle';
+  t.className = 'toast ' + (type==='ok'?'tok':'terr') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ── HELPERS ── */
+function sc(s) { return s===100?'sp-h':s>=33?'sp-m':'sp-l'; }
+function si(s) { return s===100?'ti-circle-check':s>=33?'ti-circle-half':'ti-circle-x'; }
+function fc(f) { return f.startsWith('HIGH')?'fc-h':f.startsWith('MISSING')?'fc-m':'fc-c'; }
+function fi(f) { return f.startsWith('HIGH')?'ti-alert-triangle':f.startsWith('MISSING')?'ti-tool':'ti-info-circle'; }
+function fl(f) { return f.startsWith('HIGH')?'HIGH RISK':f.startsWith('MISSING')?'MISSING':'CAUTION'; }
+function fd(d)  { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function fdt(d) { if (!d) return '—'; return new Date(d).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function esc(s) { return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── DASHBOARD ── */
+async function initDash() {
+  try {
+    const [sR,tR,dR,phR] = await Promise.all([
+      fetch(`${API}/checklists/analytics/summary`),
+      fetch(`${API}/checklists/analytics/trend`),
+      fetch(`${API}/checklists/analytics/distribution`),
+      fetch(`${API}/checklists/analytics/phases`),
+    ]);
+    const [s,t,d,ph] = await Promise.all([sR.json(),tR.json(),dR.json(),phR.json()]);
+
+    document.getElementById('s-total').textContent = s.total_surgeries ?? 0;
+    document.getElementById('s-comp').textContent  = s.avg_compliance ? s.avg_compliance.toFixed(1)+'%' : '0%';
+    document.getElementById('s-full').textContent  = s.full_compliance ?? 0;
+    document.getElementById('s-flag').textContent  = s.flagged_cases ?? 0;
+
+    [['si','sign_in'],['to','time_out'],['so','sign_out']].forEach(([k,key]) => {
+      const v = ph[key] ?? 0;
+      document.getElementById('pf-'+k).style.width = v+'%';
+      document.getElementById('pp-'+k).textContent = v+'%';
+      const b = document.getElementById('pb-'+k);
+      b.setAttribute('aria-valuenow', v);
+      b.setAttribute('aria-label', key.replace('_',' ')+': '+v+'%');
+    });
+
+    buildTrend('ct-trend', t);
+    buildDist('ct-dist', d);
+  } catch(e) { toast('Dashboard load failed','err'); }
+}
+
+function buildTrend(id, t) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: t.map(d => d._id.slice(5)),
+      datasets: [{
+        label: 'Avg Compliance %',
+        data: t.map(d => +d.avg_compliance.toFixed(1)),
+        borderColor: C.sky, backgroundColor: 'rgba(96,165,250,.1)',
+        borderWidth: 2, pointRadius: 3, pointBackgroundColor: C.sky,
+        tension: .35, fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y}%`}} },
+      scales: { y:{min:0,max:100,ticks:{callback:v=>v+'%'}}, x:{ticks:{maxTicksLimit:7}} }
+    }
+  });
+}
+
+function buildDist(id, d) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['0%\nNone','33%\nSign-In','67%\nTwo phases','100%\nFull'],
+      datasets: [{
+        label: 'Cases',
+        data: [d[0]??0, d[33]??0, d[67]??0, d[100]??0],
+        backgroundColor: [C.verm, C.amber, C.sky, C.teal],
+        borderColor:      [C.verm, C.amber, C.sky, C.teal],
+        borderWidth: 1.5, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false} },
+      scales: { y:{beginAtZero:true,ticks:{precision:0}}, x:{ticks:{font:{size:9.5}}} }
+    }
+  });
+}
+
+/* ── CHECKLISTS ── */
+async function loadSurgs() {
+  try {
+    const r = await fetch(`${API}/checklists/meta/surgeons`);
+    const s = await r.json();
+    document.getElementById('ff-surg').innerHTML =
+      '<option value="">All surgeons</option>' +
+      s.map(x => `<option>${esc(x)}</option>`).join('');
+  } catch(e) {}
+}
+
+function debLoad() { clearTimeout(debT); debT = setTimeout(() => loadCL(1), 340); }
+function resetF()  {
+  document.getElementById('ff-srch').value = '';
+  document.getElementById('ff-surg').value = '';
+  document.getElementById('ff-risk').value = '';
+  loadCL(1);
+}
+
+async function loadCL(page = 1) {
+  curPage = page;
+  const p = new URLSearchParams({ page, limit: 8 });
+  const s  = document.getElementById('ff-srch').value.trim();
+  const sg = document.getElementById('ff-surg').value;
+  const rk = document.getElementById('ff-risk').value;
+  if (s)  p.set('search', s);
+  if (sg) p.set('surgeon', sg);
+  if (rk) p.set('risk', rk);
+
+  const g = document.getElementById('cl-grid');
+  g.innerHTML = '<div class="empty" aria-busy="true"><i class="ti ti-loader" aria-label="Loading"></i>Loading…</div>';
+
+  try {
+    const r    = await fetch(`${API}/checklists?${p}`);
+    const data = await r.json();
+    const { checklists, total, pages } = data;
+    totPages = pages;
+
+    if (!checklists.length) {
+      g.innerHTML = '<div class="empty"><i class="ti ti-clipboard" aria-hidden="true"></i>No checklists found</div>';
+      document.getElementById('pager').innerHTML = '';
+      return;
+    }
+
+    g.innerHTML = checklists.map(c => `
+      <div class="cl-card" role="listitem" tabindex="0"
+           onclick="openMod('${c._id}')"
+           onkeydown="if(event.key==='Enter'||event.key===' ')openMod('${c._id}')"
+           aria-label="${esc(c.procedure)} — ${esc(c.patient_id)} — ${c.compliance_score}% compliance">
+        <div class="cl-top">
+          <div>
+            <div class="cl-proc">${esc(c.procedure)}</div>
+            <div class="cl-meta">
+              <i class="ti ti-user" aria-hidden="true"></i>${esc(c.patient_id)}
+              <span aria-hidden="true">·</span>
+              <i class="ti ti-stethoscope" aria-hidden="true"></i>${esc(c.surgeon)}
+              <span aria-hidden="true">·</span>
+              <i class="ti ti-calendar" aria-hidden="true"></i>${fd(c.created_at)}
+            </div>
+          </div>
+          <div class="score-pill ${sc(c.compliance_score)}" aria-label="Compliance ${c.compliance_score}%">
+            <i class="ti ${si(c.compliance_score)}" aria-hidden="true"></i>${c.compliance_score}%
+          </div>
+        </div>
+        <div class="ph-chips" aria-label="Phase status">
+          ${['sign_in','time_out','sign_out'].map((ph,i) => `
+            <div class="ph-chip ${c.phases[ph].completed?'done':'pend'}"
+                 aria-label="${['Sign In','Time Out','Sign Out'][i]}: ${c.phases[ph].completed?'complete':'pending'}">
+              <i class="ti ${c.phases[ph].completed?'ti-circle-check':'ti-circle'}" aria-hidden="true"></i>
+              ${['Sign In','Time Out','Sign Out'][i]}
+            </div>`).join('')}
+        </div>
+        ${c.risk_flags.length ? `
+          <div class="flag-chips" aria-label="${c.risk_flags.length} risk flag${c.risk_flags.length>1?'s':''}">
+            ${c.risk_flags.slice(0,2).map(f =>
+              `<div class="fc ${fc(f)}"><i class="ti ${fi(f)}" aria-hidden="true"></i>${fl(f)}</div>`
+            ).join('')}
+            ${c.risk_flags.length > 2 ? `<div class="fc fc-c">+${c.risk_flags.length-2} more</div>` : ''}
+          </div>` : ''}
+      </div>`).join('');
+
+    buildPager(page, pages, total);
+  } catch(e) {
+    g.innerHTML = '<div class="empty"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Failed to load. Is the backend running?</div>';
+  }
+}
+
+function buildPager(p, pages, total) {
+  const pg = document.getElementById('pager');
+  if (pages <= 1) { pg.innerHTML = ''; return; }
+  let h = `<span class="pg-info">${total} cases</span>`;
+  h += `<button class="pg-btn" onclick="loadCL(${p-1})" ${p<=1?'disabled':''} aria-label="Previous page">‹</button>`;
+  const st = Math.max(1, p-2), en = Math.min(pages, p+2);
+  if (st > 1) h += `<button class="pg-btn" onclick="loadCL(1)" aria-label="Page 1">1</button>`;
+  if (st > 2) h += `<span class="pg-info">…</span>`;
+  for (let i = st; i <= en; i++)
+    h += `<button class="pg-btn ${i===p?'cur':''}" onclick="loadCL(${i})" aria-label="Page ${i}" ${i===p?'aria-current="page"':''}>${i}</button>`;
+  if (en < pages-1) h += `<span class="pg-info">…</span>`;
+  if (en < pages)   h += `<button class="pg-btn" onclick="loadCL(${pages})" aria-label="Last page ${pages}">${pages}</button>`;
+  h += `<button class="pg-btn" onclick="loadCL(${p+1})" ${p>=pages?'disabled':''} aria-label="Next page">›</button>`;
+  pg.innerHTML = h;
+}
+
+async function createCL() {
+  const pid = document.getElementById('fp-pid').value.trim();
+  const sg  = document.getElementById('fp-surg').value.trim();
+  const pr  = document.getElementById('fp-proc').value.trim();
+  if (!pid || !sg || !pr) { toast('Fill in Patient ID, Surgeon, and Procedure','err'); return; }
+  try {
+    const body = {
+      patient_id: pid, surgeon: sg, procedure: pr,
+      patient_flags: {
+        on_anticoagulants:  document.getElementById('fx-ac').checked,
+        known_allergies:    document.getElementById('fx-al').checked,
+        robotic_procedure:  document.getElementById('fx-ro').checked,
+        high_risk_anesthesia: document.getElementById('fx-an').checked,
+      },
+      instruments: []
+    };
+    const r = await fetch(`${API}/checklists`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error();
+    ['fp-pid','fp-surg','fp-proc'].forEach(id => document.getElementById(id).value = '');
+    ['fx-ac','fx-al','fx-ro','fx-an'].forEach(id => document.getElementById(id).checked = false);
+    toast('Checklist created'); loadCL(1);
+  } catch(e) { toast('Failed to create checklist','err'); }
+}
+
+/* ── MODAL ── */
+async function openMod(id) {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('mod-title').textContent = 'Loading…';
+  document.getElementById('mod-meta').textContent  = '';
+  document.getElementById('mod-body').innerHTML = '<div class="empty" aria-busy="true"><i class="ti ti-loader" aria-label="Loading"></i></div>';
+  try {
+    const r = await fetch(`${API}/checklists/${id}`);
+    renderMod(await r.json());
+  } catch(e) {
+    document.getElementById('mod-body').innerHTML = '<div class="empty"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Failed to load</div>';
+  }
+}
+
+function renderMod(c) {
+  document.getElementById('mod-title').textContent = c.procedure;
+  document.getElementById('mod-meta').innerHTML =
+    `<i class="ti ti-user" style="font-size:12px" aria-hidden="true"></i> ${esc(c.patient_id)} &nbsp;·&nbsp;
+     <i class="ti ti-stethoscope" style="font-size:12px" aria-hidden="true"></i> ${esc(c.surgeon)} &nbsp;·&nbsp;
+     ${fd(c.created_at)} &nbsp;·&nbsp;
+     Score: <strong style="color:${c.compliance_score===100?'var(--teal)':c.compliance_score>=33?'var(--amber)':'var(--verm)'}">${c.compliance_score}%</strong>`;
+
+  const pDefs = [
+    {key:'sign_in', lbl:'Sign In',   ic:'ti-login'},
+    {key:'time_out',lbl:'Time Out',  ic:'ti-clock-pause'},
+    {key:'sign_out',lbl:'Sign Out',  ic:'ti-logout'}
+  ];
+  const phases = pDefs.map(p => {
+    const ph = c.phases[p.key], done = ph.completed;
+    return `<button class="m-ph-btn ${done?'done':'pend'}"
+              onclick="doPhase('${c._id}','${p.key}')"
+              ${done?'disabled aria-disabled="true"':''}
+              aria-label="${p.lbl}: ${done?'Completed':'Mark complete'}">
+      <i class="ti ${p.ic}" aria-hidden="true"></i>${p.lbl}
+      <div class="m-ph-ts">${done ? fdt(ph.timestamp) : 'Pending'}</div>
+    </button>`;
+  }).join('');
+
+  const flags = c.risk_flags.length
+    ? c.risk_flags.map(f => `
+        <div class="m-flag ${f.startsWith('HIGH')?'fh':f.startsWith('MISSING')?'fm':'fc'}" role="alert">
+          <i class="ti ${fi(f)}" aria-hidden="true"></i>
+          <span class="ft">${esc(f)}</span>
+        </div>`).join('')
+    : '<div style="font-size:.82rem;color:var(--teal);display:flex;align-items:center;gap:7px"><i class="ti ti-circle-check" aria-hidden="true"></i>No risk flags</div>';
+
+  const iRows = c.instruments.length
+    ? c.instruments.map(inst => `<tr>
+        <td>${esc(inst.name)}</td>
+        <td style="font-family:var(--mono)">${inst.count_before}</td>
+        <td style="font-family:var(--mono)">${inst.count_after ?? '—'}</td>
+        <td><div class="i-status ${inst.status}">
+          <i class="ti ${inst.status==='matched'?'ti-circle-check':inst.status==='missing'?'ti-alert-triangle':'ti-circle-dot'}" aria-hidden="true"></i>
+          ${inst.status}
+        </div></td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="color:var(--text3);font-size:.79rem">No instruments recorded</td></tr>';
+
+  document.getElementById('mod-body').innerHTML = `
+    <div class="ms-lbl">WHO Phases</div>
+    <div class="m-phases">${phases}</div>
+
+    <div class="ms-lbl">Risk Flags</div>
+    <div class="m-flags">${flags}</div>
+
+    <div class="ms-lbl">Patient Flags</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;font-size:.81rem">
+      ${Object.entries(c.patient_flags).map(([k,v]) => `
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;
+             border:1px solid var(--border);background:var(--bg3);
+             color:${v?'var(--amber)':'var(--text3)'}">
+          <i class="ti ${v?'ti-check':'ti-minus'}" aria-hidden="true"></i>
+          ${k.replace(/_/g,' ')}
+        </div>`).join('')}
+    </div>
+
+    <div class="ms-lbl">Instrument Tracking</div>
+    <div style="overflow-x:auto">
+      <table class="inst-tbl" aria-label="Instrument counts">
+        <thead><tr><th>Instrument</th><th>Before</th><th>After</th><th>Status</th></tr></thead>
+        <tbody>${iRows}</tbody>
+      </table>
+    </div>
+    <div class="inst-add" role="form" aria-label="Add instrument">
+      <div>
+        <label class="f-lbl" for="ia-nm">Name</label>
+        <input id="ia-nm" class="f-in" type="text" placeholder="e.g. Trocar" autocomplete="off">
+      </div>
+      <div>
+        <label class="f-lbl" for="ia-b">Before</label>
+        <input id="ia-b" class="f-in" type="number" min="0" placeholder="0">
+      </div>
+      <div>
+        <label class="f-lbl" for="ia-a">After</label>
+        <input id="ia-a" class="f-in" type="number" min="0" placeholder="0">
+      </div>
+      <div style="padding-top:18px">
+        <button class="btn-sm" onclick="addInst('${c._id}')" aria-label="Add instrument">Add</button>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+      <button class="btn-del" onclick="delCL('${c._id}')" aria-label="Delete this checklist permanently">
+        <i class="ti ti-trash" aria-hidden="true"></i> Delete
+      </button>
+    </div>`;
+}
+
+function closeMod() { document.getElementById('overlay').classList.remove('open'); }
+
+async function doPhase(id, phase) {
+  try {
+    const r = await fetch(`${API}/checklists/${id}/phase`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({phase})
+    });
+    renderMod(await r.json());
+    toast(phase.replace('_',' ') + ' complete');
+    loadCL(curPage);
+  } catch(e) { toast('Failed to update phase','err'); }
+}
+
+async function addInst(id) {
+  const n = document.getElementById('ia-nm').value.trim();
+  const b = document.getElementById('ia-b').value;
+  const a = document.getElementById('ia-a').value;
+  if (!n || b==='' || a==='') { toast('Fill all instrument fields','err'); return; }
+  try {
+    const r = await fetch(`${API}/checklists/${id}/instruments`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name:n, count_before:b, count_after:a})
+    });
+    renderMod(await r.json());
+    toast(`"${n}" added`);
+    loadCL(curPage);
+  } catch(e) { toast('Failed to add instrument','err'); }
+}
+
+async function delCL(id) {
+  if (!confirm('Delete this checklist permanently?')) return;
+  try {
+    await fetch(`${API}/checklists/${id}`, {method:'DELETE'});
+    closeMod();
+    toast('Checklist deleted');
+    loadCL(curPage > 1 && curPage >= totPages ? curPage-1 : curPage);
+  } catch(e) { toast('Failed to delete','err'); }
+}
+
+/* ── ANALYTICS ── */
+async function initAnal() {
+  try {
+    const [tR,dR,phR,prR] = await Promise.all([
+      fetch(`${API}/checklists/analytics/trend`),
+      fetch(`${API}/checklists/analytics/distribution`),
+      fetch(`${API}/checklists/analytics/phases`),
+      fetch(`${API}/checklists/analytics/by-procedure`),
+    ]);
+    const [t,d,ph,pr] = await Promise.all([tR.json(),dR.json(),phR.json(),prR.json()]);
+    buildTrend('ct-trend2', t);
+    buildDist('ct-dist2', d);
+    buildPhases(ph);
+    buildProcTable(pr);
+  } catch(e) { toast('Analytics load failed','err'); }
+}
+
+function buildPhases(ph) {
+  if (charts['ct-phases']) charts['ct-phases'].destroy();
+  charts['ct-phases'] = new Chart(document.getElementById('ct-phases').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Sign In','Time Out','Sign Out'],
+      datasets: [{
+        label: '% Completed',
+        data: [ph.sign_in, ph.time_out, ph.sign_out],
+        backgroundColor: [C.blue, C.amber, C.teal],
+        borderColor:      [C.blue, C.amber, C.teal],
+        borderWidth: 1.5, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.parsed.y}% of cases`}} },
+      scales: { y:{min:0,max:100,ticks:{callback:v=>v+'%'}} }
+    }
+  });
+}
+
+function buildProcTable(procs) {
+  const w = document.getElementById('proc-tbl-wrap');
+  if (!procs.length) { w.innerHTML='<div class="empty"><i class="ti ti-clipboard" aria-hidden="true"></i>No data</div>'; return; }
+  w.innerHTML = `
+    <table class="proc-tbl" aria-label="Compliance by procedure">
+      <thead><tr><th>Procedure</th><th>Cases</th><th>Avg Compliance</th><th style="width:160px">Bar</th></tr></thead>
+      <tbody>${procs.map(p => `<tr>
+        <td>${esc(p._id)}</td>
+        <td style="font-family:var(--mono)">${p.count}</td>
+        <td style="font-family:var(--mono);color:${p.avg_compliance>=67?'var(--teal)':p.avg_compliance>=34?'var(--amber)':'var(--verm)'}">${p.avg_compliance.toFixed(1)}%</td>
+        <td><div class="mini-bar" role="progressbar" aria-valuenow="${Math.round(p.avg_compliance)}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(p._id)}: ${p.avg_compliance.toFixed(1)}%">
+          <div class="mini-fill" style="width:${p.avg_compliance}%"></div>
+        </div></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+/* ── AI VIDEO ── */
+function loadVid(f) {
+  if (!f) return;
+  document.getElementById('vp').src = URL.createObjectURL(f);
+  document.getElementById('vw').classList.add('show');
+  document.getElementById('uz').style.display = 'none';
+  document.getElementById('vinfo').textContent = `${f.name} · ${(f.size/1024/1024).toFixed(1)} MB · ${f.type}`;
+  document.getElementById('btn-det').disabled = false;
+  alog(`Video loaded: ${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`, 'ok');
+}
+
+function doDrop(e) {
+  e.preventDefault();
+  document.getElementById('uz').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('video/')) loadVid(f);
+  else toast('Please drop a video file','err');
+}
+
+async function runDet() {
+  const vi = document.getElementById('vi');
+  if (!vi.files[0]) { toast('No video loaded','err'); return; }
+  const btn = document.getElementById('btn-det');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Running…';
+  document.getElementById('ai-ph').style.display   = 'none';
+  document.getElementById('det-list').style.display = 'none';
+  alog('Sending to localhost:5001/detect…', 'ok');
+  try {
+    const form = new FormData();
+    form.append('video', vi.files[0]);
+    const r = await fetch('http://localhost:5001/detect', {method:'POST', body:form});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    renderDet(data);
+    alog(`Done. ${Object.keys(data.summary||{}).length} instrument types found.`, 'ok');
+  } catch(e) {
+    alog(`Error: ${e.message} — start Flask with: python detect_server.py`, 'err');
+    toast('Could not reach detection server','err');
+    document.getElementById('ai-ph').style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-cpu" aria-hidden="true"></i> Run Detection';
+  }
+}
+
+function renderDet(data) {
+  const dl  = document.getElementById('det-list');
+  dl.style.display = 'grid';
+  const sum = data.summary || {};
+  const ICONS = { grasper:'ti-tool', hook:'ti-hook', clipper:'ti-scissors', irrigator:'ti-droplet', 'specimen-bag':'ti-package' };
+  if (!Object.keys(sum).length) {
+    dl.innerHTML = '<div style="color:var(--amber);font-size:.84rem;display:flex;align-items:center;gap:7px"><i class="ti ti-alert-triangle" aria-hidden="true"></i>No instruments detected</div>';
+    return;
+  }
+  dl.innerHTML = Object.entries(sum).sort((a,b)=>b[1]-a[1]).map(([lbl,cnt]) => {
+    const top  = (data.detections||[]).filter(d=>d.label===lbl).sort((a,b)=>b.confidence-a.confidence)[0];
+    const conf = top ? (top.confidence*100).toFixed(1) : '—';
+    const ic   = ICONS[lbl.toLowerCase()] || 'ti-cpu';
+    return `<div class="det-item">
+      <div class="det-ic" aria-hidden="true"><i class="ti ${ic}"></i></div>
+      <div class="det-lbl">${esc(lbl)}</div>
+      <div class="det-cnt">${cnt} detections</div>
+      <div class="det-conf" aria-label="Max confidence ${conf}%">${conf}% conf</div>
+    </div>`;
+  }).join('');
+}
+
+function alog(msg, type='') {
+  const l = document.getElementById('ai-log');
+  const d = document.createElement('div');
+  d.className = 'log-line ll-' + type;
+  d.textContent = `[${new Date().toLocaleTimeString('en-GB')}] ${msg}`;
+  l.appendChild(d);
+  l.scrollTop = l.scrollHeight;
+}
+
+/* ── KEYBOARD ── */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMod(); });
+
+/* ── THEME TOGGLE ── */
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  document.getElementById('theme-ic').className = isLight ? 'ti ti-sun' : 'ti ti-moon';
+  localStorage.setItem('orguard-theme', isLight ? 'dark' : 'light');
+  // Rebuild charts with new colours
+  setChartDefaults();
+  const page = document.querySelector('.page.on')?.id?.replace('pg-','');
+  if (page === 'dashboard') initDash();
+  if (page === 'analytics') initAnal();
+}
+
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem('orguard-theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    // icon will be set after DOM ready — handled below
+  }
+})();
+
+/* ── BOOT ── */
+(function() {
+  const saved = localStorage.getItem('orguard-theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+window.addEventListener('DOMContentLoaded', () => {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.getElementById('theme-ic').className = isLight ? 'ti ti-moon' : 'ti ti-sun';
+});
+initDash();
+</script>
+</body>
+</html>
